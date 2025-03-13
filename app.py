@@ -10,15 +10,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Specify the path to the ffprobe binary
+FFPROBE_PATH = "/usr/bin/ffprobe"  # Update this path based on your system
+
 def get_file_size(file_path):
     """Return the file size in MB"""
     size_bytes = os.path.getsize(file_path)
     return size_bytes / (1024 * 1024)
 
-def get_video_info(input_file):
+def get_video_info(input_file, ffprobe_path=FFPROBE_PATH):
     """Get video information using ffprobe"""
     try:
-        probe = ffmpeg.probe(input_file)
+        probe = ffmpeg.probe(input_file, cmd=ffprobe_path)
         video_info = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
         audio_info = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
         
