@@ -253,7 +253,7 @@ def main():
                                 )
         # Create layout for videos and compression
         # Compress button - works on selected videos
-        if st.button("Compress Selected Videos", use_container_width=True, icon="🎬", type="primary"):
+        if st.button("🎬 Compress Videos", use_container_width=True, type="primary"):
             # Check if any videos are selected
             selected_videos = [v for k, v in videos_data.items() if v["selected_for_compression"]]
             
