@@ -2,6 +2,7 @@ import os
 import tempfile
 import streamlit as st
 import ffmpeg
+import subprocess
 
 st.set_page_config(
     page_title="Video Compressor",
@@ -10,18 +11,62 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Specify the path to the ffprobe binary
-FFPROBE_PATH = "/usr/bin/ffprobe"  # Update this path based on your system
+def find_ffmpeg():
+    """Find ffmpeg and ffprobe executables"""
+    # Try to find ffmpeg in common locations
+    ffmpeg_paths = [
+        'ffmpeg',  # Default PATH
+        '/usr/bin/ffmpeg',
+        '/usr/local/bin/ffmpeg',
+        '/opt/homebrew/bin/ffmpeg'
+    ]
+    
+    ffprobe_paths = [
+        'ffprobe',  # Default PATH
+        '/usr/bin/ffprobe',
+        '/usr/local/bin/ffprobe',
+        '/opt/homebrew/bin/ffprobe'
+    ]
+    
+    ffmpeg_path = None
+    ffprobe_path = None
+    
+    # Find ffmpeg
+    for path in ffmpeg_paths:
+        try:
+            subprocess.run([path, '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            ffmpeg_path = path
+            break
+        except (subprocess.SubprocessError, FileNotFoundError):
+            continue
+            
+    # Find ffprobe
+    for path in ffprobe_paths:
+        try:
+            subprocess.run([path, '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            ffprobe_path = path
+            break
+        except (subprocess.SubprocessError, FileNotFoundError):
+            continue
+            
+    return ffmpeg_path, ffprobe_path
+
+# Get ffmpeg paths at startup
+FFMPEG_PATH, FFPROBE_PATH = find_ffmpeg()
 
 def get_file_size(file_path):
     """Return the file size in MB"""
     size_bytes = os.path.getsize(file_path)
     return size_bytes / (1024 * 1024)
 
-def get_video_info(input_file, ffprobe_path=FFPROBE_PATH):
+def get_video_info(input_file):
     """Get video information using ffprobe"""
+    if not FFPROBE_PATH:
+        st.error("FFprobe not found. Please ensure FFmpeg is properly installed.")
+        return None
+        
     try:
-        probe = ffmpeg.probe(input_file, cmd=ffprobe_path)
+        probe = ffmpeg.probe(input_file, cmd=FFPROBE_PATH)
         video_info = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
         audio_info = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
         
@@ -34,7 +79,7 @@ def get_video_info(input_file, ffprobe_path=FFPROBE_PATH):
             'has_audio': audio_info is not None
         }
     except Exception as e:
-        st.error(f"Error getting video info: {e}")
+        st.error(f"Error getting video info: {str(e)}")
         return None
 
 def estimate_size(video_info, resolution, remove_audio, fps, bitrate):
@@ -79,8 +124,12 @@ def estimate_size(video_info, resolution, remove_audio, fps, bitrate):
     
     return estimated_mb
 
-def compress_video(input_file, output_file, resolution="1280x720", remove_audio=True, fps="24", bitrate="1000k", ffmpeg_path="ffmpeg"):
+def compress_video(input_file, output_file, resolution="1280x720", remove_audio=True, fps="24", bitrate="1000k", ffmpeg_path=FFMPEG_PATH):
     """Compress the video with the given parameters"""
+    if not ffmpeg_path:
+        st.error("FFmpeg not found. Please ensure FFmpeg is properly installed.")
+        return False
+        
     try:
         # Start with the input file
         stream = ffmpeg.input(input_file)
@@ -121,12 +170,17 @@ def compress_video(input_file, output_file, resolution="1280x720", remove_audio=
         ffmpeg.run(output, cmd=ffmpeg_path, quiet=True, overwrite_output=True)
         return True
     except Exception as e:
-        st.error(f"Error compressing video: {e}")
+        st.error(f"Error compressing video: {str(e)}")
         return False
 
 def main():
     st.title("🎬 Video Compressor")
     st.write("Compress your videos for easy sharing on Discord, WhatsApp, and other platforms.")
+    
+    # Check if FFmpeg is available
+    if not FFMPEG_PATH or not FFPROBE_PATH:
+        st.error("⚠️ FFmpeg or FFprobe not found. Please ensure FFmpeg is properly installed on the server.")
+        st.stop()
     
     # Compression settings - applied to all videos
     st.sidebar.subheader("Compression Settings")
