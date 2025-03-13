@@ -76,7 +76,7 @@ def estimate_size(video_info, resolution, remove_audio, fps, bitrate):
     
     return estimated_mb
 
-def compress_video(input_file, output_file, resolution="1280x720", remove_audio=True, fps="24", bitrate="1000k"):
+def compress_video(input_file, output_file, resolution="1280x720", remove_audio=True, fps="24", bitrate="1000k", ffmpeg_path="ffmpeg"):
     """Compress the video with the given parameters"""
     try:
         # Start with the input file
@@ -115,7 +115,7 @@ def compress_video(input_file, output_file, resolution="1280x720", remove_audio=
         
         # Run the ffmpeg command
         output = output.overwrite_output()
-        ffmpeg.run(output, quiet=True, overwrite_output=True)
+        ffmpeg.run(output, cmd=ffmpeg_path, quiet=True, overwrite_output=True)
         return True
     except Exception as e:
         st.error(f"Error compressing video: {e}")
