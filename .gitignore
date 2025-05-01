@@ -25,9 +25,6 @@ venv/
 ENV/
 .env
 
-# Streamlit
-.streamlit/
-
 # IDE files
 .idea/
 .vscode/
